@@ -5,6 +5,8 @@ import {getFunctions, httpsCallable} from 'firebase/functions'
 import {v4 as uuidv4} from 'uuid'
 import {useHistory} from 'react-router-dom'
 import useLogin from 'src/hooks/useLogin'
+import LiveStreamingContext from 'src/context/LiveStreamingContext'
+import {ref, get, getDatabase} from 'firebase/database'
 
 interface Props {
     open: boolean;
@@ -12,12 +14,15 @@ interface Props {
 }
 
 const functions = getFunctions()
+const database = getDatabase()
 
 export default function StartLiveDialog(props: Props) {
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [totalTime, setTotalTime] = useState(30)
     const {uid, name} = useLogin()
+
+    const {addLiveData} = useContext(LiveStreamingContext)
 
     const history = useHistory()
 
@@ -40,8 +45,11 @@ export default function StartLiveDialog(props: Props) {
             totalTime,
             role: "publisher",
             channelName
+        }).then(res => {
+            return res.data as { token: string }
         })
-        const agoraAuthToken = generateTokenResult.data as string
+
+        const agoraAuthToken = generateTokenResult.token as string
 
         await agoraClient.setClientRole('host').then(() => {
             sessionStorage.setItem('clientRole', 'host')
@@ -49,6 +57,9 @@ export default function StartLiveDialog(props: Props) {
 
         try {
             await agoraClient.join(appId, channelName, agoraAuthToken, uid)
+            const snapshot = await get(ref(database, `live/${channelName}`))
+            const liveData = snapshot.val()
+            addLiveData(liveData)
             closeDialog()
             history.push('/live')
         }

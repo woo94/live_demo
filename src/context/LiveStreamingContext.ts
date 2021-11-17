@@ -1,20 +1,24 @@
 import {createContext} from 'react'
-import {LiveMap, LiveData} from 'src/types/live'
+import {LiveDataList, LiveData} from 'src/types/live'
 import _ from 'lodash'
 
 interface LiveStreamInterface {
-    liveMap: LiveMap;
+    liveDataList: LiveDataList;
     // currentChannel: string;
     // setCurrentChannel: (channelName: string) => void;
-    upsertLiveData: (channelName: string, data: LiveData) => void;
+    refreshLiveData: (deleteChannels: Array<string>, updateChannels: Array<LiveData>) => void;
+    updateLiveData: (data: LiveData) => void;
+    addLiveData: (...data: Array<LiveData>) => void;
     deleteLiveData: (channelName: string) => void;
 }
 
 const LiveStreamingContext = createContext<LiveStreamInterface>({
-    liveMap: new Map(),
+    liveDataList: [],
     // currentChannel: "",
     // setCurrentChannel: (channelName) => {},
-    upsertLiveData: (channelName, data) => {},
+    refreshLiveData: (deleteChannels, updateChannels) => {},
+    updateLiveData: (data) => {},
+    addLiveData: (...data) => {},
     deleteLiveData: (channelName) => {}
 })
 

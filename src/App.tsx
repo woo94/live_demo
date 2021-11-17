@@ -5,69 +5,73 @@ import LiveChannel from 'src/pages/LiveChannel'
 import '@fontsource/roboto'
 import {Route, Switch} from 'react-router-dom'
 import LiveStreamingContext from 'src/context/LiveStreamingContext'
-import {LiveMap, LiveData} from 'src/types/live'
+import {LiveData} from 'src/types/live'
 import _ from 'lodash'
 import Root from 'src/pages/Root'
 import {getDatabase, onChildAdded, onChildRemoved, ref} from 'firebase/database'
 import useLogin from './hooks/useLogin';
+import {getAuth, onAuthStateChanged} from 'firebase/auth'
 
 const database = getDatabase()
+const auth = getAuth()
 
 function App() {
-    const [liveMap, setLiveMap] = useState<LiveMap>(new Map())
+    const [liveDataList, setLiveDataList] = useState<Array<LiveData>>([])
     const {uid, saveInfo} = useLogin()
 
-    const upsertLiveData = useCallback((channelName: string, data: LiveData) => {
-        setLiveMap(prev => {
-            const _liveMap = _.cloneDeep(prev)
-            _liveMap.set(channelName, data)
-            return _liveMap
-        })
-    }, [setLiveMap])
+    const addLiveData = (...data: Array<LiveData>) => {
+        setLiveDataList(prev => [...prev, ...data])
+    }
 
-    const deleteLiveData = useCallback((channelName: string) => {
-        setLiveMap(prev => {
-            const _liveMap = _.cloneDeep(prev)
-            _liveMap.delete(channelName)
-            return _liveMap
+    const refreshLiveData = (deleteChannels: Array<string>, updateChannels: Array<LiveData>) => {
+        setLiveDataList(prev => {
+            const _liveDataList = liveDataList.filter(val => !deleteChannels.includes(val.channel))
+            updateChannels.forEach(liveData => {
+                const index = _liveDataList.findIndex(val => val.channel === liveData.channel)
+                if(index !== -1) {
+                    _liveDataList[index] = liveData
+                }
+            })
+            return _liveDataList
         })
-    }, [setLiveMap])
+    }
+
+    const updateLiveData = (data: LiveData) => {
+        setLiveDataList(prev => {
+            const {channel} = data
+            const _liveDataList = _.cloneDeep(prev)
+            const index = liveDataList.findIndex(val => val.channel === channel)
+            if(index === -1) {
+                return _liveDataList
+            }
+            _liveDataList[index] = data
+            return _liveDataList
+        })
+    }
+
+    const deleteLiveData = (channelName: string) => {
+        setLiveDataList(prev => {
+            return prev.filter(val => val.channel !== channelName)
+        })
+    }
 
     useEffect(() => {
-        console.log(uid, 'useEffect hook')
-        if(uid === null) {
-            return
-        }
-        
-        const liveRef = ref(database, 'live')
-        // add listener to list
-        const offOnChildAdded = onChildAdded(liveRef, (snapshot) => {
-            const channelName = snapshot.key as string
-            const data = snapshot.val()
-            const liveData: LiveData = {
-                description: data['description'],
-                grade: data['grade'],
-                title: data['title'],
-                total_time: data['total_time'],
-                name: data['name'],
-                host: data['host']
+        const unsubscribeAuthChange = onAuthStateChanged(auth, (user) => {
+            if(user) {
+                console.log(user.email, user.uid)
             }
-            upsertLiveData(channelName, liveData)
-        })
-        const offOnChildRemoved = onChildRemoved(liveRef, (snapshot) => {
-            const channelName = snapshot.key as string
-            deleteLiveData(channelName)
+            else {
+                console.log('no user')
+            }
         })
 
         return () => {
-            offOnChildAdded()
-            offOnChildRemoved()
+            unsubscribeAuthChange()
         }
-        
-    }, [uid])
+    }, [])
 
     return (
-        <LiveStreamingContext.Provider value={{ liveMap, upsertLiveData, deleteLiveData }}>
+        <LiveStreamingContext.Provider value={{ liveDataList, refreshLiveData, updateLiveData, addLiveData, deleteLiveData }}>
             <Container maxWidth="sm">
                 <Switch>
                     <Route exact path="/">

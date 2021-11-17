@@ -1,6 +1,6 @@
 import {Container, Button, TextField, Typography, Box, Snackbar} from '@mui/material'
 import React, {useState, useContext} from 'react'
-import {getAuth, signInWithEmailAndPassword} from 'firebase/auth'
+import {getAuth, signInWithEmailAndPassword, setPersistence, browserSessionPersistence} from 'firebase/auth'
 import {getFirestore, doc, getDoc, DocumentData} from 'firebase/firestore'
 
 const auth = getAuth()
@@ -17,6 +17,7 @@ export default function Login(props: Props) {
 
     const handleLogin = async () => {
         try {
+            await setPersistence(auth, browserSessionPersistence)
             const userCredential = await signInWithEmailAndPassword(auth, email, password)
             const uid = userCredential.user.uid
 

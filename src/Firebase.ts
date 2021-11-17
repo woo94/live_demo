@@ -10,7 +10,7 @@ const firebaseConfig = {
   authDomain: "nextlearning-505ce.firebaseapp.com",
   databaseURL: "https://nextlearning-505ce-library.firebaseio.com/",
   projectId: "nextlearning-505ce",
-  storageBucket: "nextlearning-505ce.appspot.com",
+  storageBucket: "gs://nextlearning-505ce-live",
   messagingSenderId: "997722786305",
   appId: "1:997722786305:web:4e5b7c7363724f24278e00",
   measurementId: "G-XEG13R91P1"
